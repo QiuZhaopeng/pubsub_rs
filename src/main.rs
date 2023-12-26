@@ -15,9 +15,8 @@ fn sleep_ms(time_ms:u64) {
 
 // function for generating current timestamp in string format
 fn generate_timestamp()->String {
-	let mut utc : DateTime<Utc> = Utc::now();	
+    let mut utc : DateTime<Utc> = Utc::now();    
     let timestamp_str = utc.format("%Y-%m-%d %H:%M:%S.%f").to_string();
-	println!("{}", timestamp_str);
     timestamp_str
 }
 
@@ -25,7 +24,7 @@ fn generate_timestamp()->String {
 #[derive(Debug)]
 struct Message<T> {
     data: T,
-    // todo: add timestamp
+    timestamp: String,
 }
 
 ///////// Generic Publisher struct
@@ -43,11 +42,12 @@ impl<T: std::fmt::Debug> Publisher<T> {
     fn publish(&self, data: T) {
         // Create and publish a message
         let mut messagesList = self.messagesList.lock().unwrap();
-		// print_type_of(&messagesList);
-        messagesList.push(Message { data });
-		/*if messagesList.is_empty() {
-		    println!("empty list");
-	    }*/
+        // print_type_of(&messagesList);
+        let timestamp = generate_timestamp();
+        messagesList.push(Message { data, timestamp });
+        /*if messagesList.is_empty() {
+            println!("empty list");
+        }*/
     }
 }
 
@@ -62,24 +62,24 @@ impl<T: Clone + std::fmt::Debug> Subscriber<T> {
     }
 
     fn subscribe(&self) {
-		let mut cnt:u32 = 0;
+        let mut cnt:u32 = 0;
         loop {
             // Wait for new data
             let mut messagesList = self.messagesList.lock().unwrap();
 
             while !messagesList.is_empty() {
                 // Retrieve and process the data
-                let message = &messagesList[0].data;
-                println!("Received: {:?}", message);
-				messagesList.remove(0);
+                let message = &messagesList[0];
+                println!("Received: {:?}, timestamp: {}", message.data, message.timestamp );
+                messagesList.remove(0);
             }
 
             drop(messagesList); // Release the lock
             sleep_ms(500);
-			cnt = cnt+1;
-			if cnt > 12 {
-			    break;
-			}
+            cnt = cnt+1;
+            if cnt > 12 {
+                break;
+            }
         }
     }
 }
@@ -88,10 +88,9 @@ impl<T: Clone + std::fmt::Debug> Subscriber<T> {
 // Main function
 ///////////////////////////
 fn main() {
-	// shared data container for publishing and reading messages
-	let messagesList = Arc::new(Mutex::new(Vec::new()));
+    // shared data container for publishing and reading messages
+    let messagesList = Arc::new(Mutex::new(Vec::new()));
 
-	generate_timestamp();
     // Create instances of the Publisher and Subscriber with i32 data type
     let publisher : Publisher<i32>  = Publisher::new(Arc::clone(&messagesList));
     let subscriber : Subscriber<i32> = Subscriber::new(Arc::clone(&messagesList));
@@ -104,7 +103,7 @@ fn main() {
     // Publish some data in the main thread
     for i in 1..=10 {
         publisher.publish(i);
-		println!("Published new message {}", i);
+        println!("Published new message {}", i);
         sleep_ms(300);
     }
 
