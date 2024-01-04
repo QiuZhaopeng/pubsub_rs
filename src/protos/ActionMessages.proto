@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+message ActionRequest {
+    string guid = 1;
+    int32 value = 2;
+    repeated string details = 3;
+}
+
+enum ActionStatus {
+    SUCESS = 0;
+    FAILURE = 1;
+}
+
+message ActionResponse {
+    string guid = 1;
+    ActionStatus status = 2;
+}
